@@ -7,9 +7,17 @@ def process_data(df):
     # Combine date and time into a single datetime column
     df['datetime'] = pd.to_datetime(df['date'] + ' ' + df['time'])
     
+    # Clean up the 'reader in and out' column (strip spaces, lowercase)
+    df['reader in and out'] = df['reader in and out'].str.strip().str.lower()
+    
+    # Mark entries as 'in' or 'out' if they contain those words
+    df['entry_type'] = df['reader in and out'].apply(
+        lambda x: 'in' if 'in' in x else ('out' if 'out' in x else None)
+    )
+    
     # Separate In and Out records
-    in_df = df[df['reader in and Out'].str.lower() == 'in']
-    out_df = df[df['reader in and Out'].str.lower() == 'out']
+    in_df = df[df['entry_type'] == 'in']
+    out_df = df[df['entry_type'] == 'out']
     
     # Get the earliest In and latest Out for each employee per day
     first_in = in_df.groupby(['employee id', 'employee name', 'date'])['datetime'].min()
