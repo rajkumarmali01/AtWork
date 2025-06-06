@@ -41,8 +41,8 @@ uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file:
     try:
         raw_df = pd.read_csv(uploaded_file)
-        # Check required columns
-        required_cols = {'employee id', 'employee name', 'date', 'time', 'reader in and Out'}
+        # Check required columns -- all lowercase!
+        required_cols = {'employee id', 'employee name', 'date', 'time', 'reader in and out'}
         if not required_cols.issubset(set(raw_df.columns)):
             st.error(f"CSV must contain columns: {', '.join(required_cols)}")
         else:
@@ -66,4 +66,4 @@ else:
     st.info("Awaiting CSV file upload.")
 
 st.markdown("---")
-st.markdown("*Sample CSV columns:* employee id, employee name, date, time, reader in and Out")
+st.markdown("*Sample CSV columns:* employee id, employee name, date, time, reader in and out")
