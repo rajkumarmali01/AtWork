@@ -66,4 +66,5 @@ else:
     st.info("Awaiting CSV file upload.")
 
 st.markdown("---")
-st.markdown("*Sample CSV columns:* employee id, employee name, date, time, reader in and out, Created By Rajkumar Mali Intern:- AIDTM")
+st.markdown("*Sample CSV columns:* employee id, employee name, date, time, reader in and out, 
+Created By Rajkumar Mali Intern:- AIDTM")
