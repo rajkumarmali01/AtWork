@@ -33,8 +33,8 @@ def process_data(df):
     return result
 
 # --- Streamlit App Interface ---
-st.title("🏢 AtWork Employee Time Analyser")
-st.write("Upload your employee punch data in CSV to analyze building occupancy time.")
+st.title("🏢 Employee Time Analyzer")
+st.write("Upload your employee punch data in CSV format to analyze building occupancy time.")
 
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
@@ -51,19 +51,65 @@ if uploaded_file:
             st.dataframe(result_df.style.format({
                 'First In': lambda t: t.strftime("%H:%M") if pd.notnull(t) else "",
                 'Last Out': lambda t: t.strftime("%H:%M") if pd.notnull(t) else "",
-                'Total Time': lambda t: f"{int(t.total_seconds()//3600):02d}:{int((t.total_seconds()%3600)//60):02d}" if pd.notnull(t) else ""
+                'Total Time': lambda t: (
+                    f"{int(t.total_seconds()//3600):02d}:{int((t.total_seconds()%3600)//60):02d}"
+                    if pd.notnull(t) else ""
+                )
             }))
-            # Download button
+            # Download button for full analysis
             csv = result_df.to_csv(index=False)
             st.download_button(
                 label="📥 Download Analysis CSV",
                 data=csv,
                 file_name=f"time_analysis_{datetime.now().date()}.csv"
             )
+
+            # --- Employees with less than 9 hours in a day ---
+            less_than_9_hours = result_df[result_df['Total Time'] < pd.Timedelta(hours=9)][
+                ['Employee ID', 'Name', 'Date', 'Total Time']
+            ]
+            st.subheader("Employees Who Stayed Less Than 9 Hours (Daily)")
+            if not less_than_9_hours.empty:
+                st.dataframe(less_than_9_hours.style.format({
+                    'Total Time': lambda t: (
+                        f"{int(t.total_seconds()//3600):02d}:{int((t.total_seconds()%3600)//60):02d}"
+                        if pd.notnull(t) else ""
+                    )
+                }))
+                csv_lt9 = less_than_9_hours.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Less Than 9 Hours CSV",
+                    data=csv_lt9,
+                    file_name=f"less_than_9_hours_{datetime.now().date()}.csv"
+                )
+            else:
+                st.info("No employees found who stayed less than 9 hours in a day.")
+
+            # --- Weekly Analysis: Less than 49 hours ---
+            result_df['Week'] = pd.to_datetime(result_df['Date']).dt.isocalendar().week
+            result_df['Year'] = pd.to_datetime(result_df['Date']).dt.isocalendar().year
+            weekly_hours = result_df.groupby(['Employee ID', 'Name', 'Year', 'Week'])['Total Time'].sum().reset_index()
+            weekly_below_49 = weekly_hours[weekly_hours['Total Time'] < pd.Timedelta(hours=49)]
+            st.subheader("Employees With Weekly Total Less Than 49 Hours")
+            if not weekly_below_49.empty:
+                weekly_below_49['Total Time'] = weekly_below_49['Total Time'].apply(
+                    lambda t: f"{int(t.total_seconds()//3600):02d}:{int((t.total_seconds()%3600)//60):02d}"
+                    if pd.notnull(t) else ""
+                )
+                st.dataframe(weekly_below_49[['Employee ID', 'Name', 'Year', 'Week', 'Total Time']])
+                csv_lt49 = weekly_below_49.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Weekly Less Than 49 Hours CSV",
+                    data=csv_lt49,
+                    file_name=f"weekly_less_than_49_hours_{datetime.now().date()}.csv"
+                )
+            else:
+                st.info("No employees found with weekly total less than 49 hours.")
+
     except Exception as e:
         st.error(f"Error processing file: {e}")
 else:
     st.info("Awaiting CSV file upload.")
 
 st.markdown("---")
-st.markdown("*Sample CSV columns:* employee id, employee name, date, time, reader in and out, Created By Rajkumar Mali Intern:- AIDTM")
+st.markdown("*Sample CSV columns:* employee name, date, employee id, time, reader in and out")
