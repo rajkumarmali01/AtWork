@@ -51,7 +51,7 @@ if uploaded_file:
             st.dataframe(result_df.style.format({
                 'First In': lambda t: t.strftime("%H:%M") if pd.notnull(t) else "",
                 'Last Out': lambda t: t.strftime("%H:%M") if pd.notnull(t) else "",
-                'Total Time': lambda t: f"{int(t.total_seconds()//3600):02d}:{int((t.tota_seconds()%3600)//60):02d}" if pd.notnull(t) else ""
+                'Total Time': lambda t: f"{int(t.total_seconds()//3600):02d}:{int((t.total_seconds()%3600)//60):02d}" if pd.notnull(t) else ""
             }))
             # Download button
             csv = result_df.to_csv(index=False)
