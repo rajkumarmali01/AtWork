@@ -3,7 +3,6 @@ import pandas as pd
 from datetime import datetime
 
 def format_timedelta_to_hhmm(t):
-    # Converts pandas Timedelta to HH:MM string
     if pd.isnull(t):
         return ""
     total_minutes = int(t.total_seconds() // 60)
@@ -31,6 +30,17 @@ def process_data(df):
     result.columns = ['Employee ID', 'Name', 'Date', 'First In', 'Last Out']
     # Calculate total time spent in the building
     result['Total Time'] = result['Last Out'] - result['First In']
+    # Flag missing punches
+    def missing_punch(row):
+        if pd.isnull(row['First In']) and pd.isnull(row['Last Out']):
+            return "Both Missing"
+        elif pd.isnull(row['First In']):
+            return "Punch In Missing"
+        elif pd.isnull(row['Last Out']):
+            return "Punch Out Missing"
+        else:
+            return ""
+    result['Missing Punch'] = result.apply(missing_punch, axis=1)
     return result
 
 st.title("🏢 Employee Time Analyzer")
@@ -52,7 +62,8 @@ if uploaded_file:
             st.dataframe(result_df.style.format({
                 'First In': lambda t: t.strftime("%H:%M") if pd.notnull(t) else "",
                 'Last Out': lambda t: t.strftime("%H:%M") if pd.notnull(t) else "",
-                'Total Time': format_timedelta_to_hhmm
+                'Total Time': format_timedelta_to_hhmm,
+                'Missing Punch': lambda x: x if x else ""
             }))
 
             # ---- Download: Main Table with HH:MM "Total Time" ----
@@ -100,6 +111,20 @@ if uploaded_file:
                 data=csv_lt49,
                 file_name=f"weekly_less_than_49_hours_{datetime.now().date()}.csv"
             )
+
+            # ---- Missing Punches Output ----
+            missing_punches = result_df[result_df['Missing Punch'] != ""]
+            st.subheader("⚠️ Employees With Missing Punches")
+            if not missing_punches.empty:
+                st.dataframe(missing_punches[['Employee ID', 'Name', 'Date', 'Missing Punch']])
+                csv_missing = missing_punches[['Employee ID', 'Name', 'Date', 'Missing Punch']].to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Missing Punches CSV",
+                    data=csv_missing,
+                    file_name=f"missing_punches_{datetime.now().date()}.csv"
+                )
+            else:
+                st.success("No missing punches found!")
 
     except Exception as e:
         st.error(f"Error processing file: {e}")
