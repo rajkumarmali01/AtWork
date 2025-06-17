@@ -43,8 +43,8 @@ def process_data(df):
     result['Missing Punch'] = result.apply(missing_punch, axis=1)
     return result
 
-st.title("🏢 Employee Time Analyzer")
-st.write("Upload your employee punch data in CSV format to analyze building occupancy time.")
+st.title("🏢 Atwork Employee Daily Time Analysis")
+st.write("Upload your employee punch data in CSV format to analyze Timing of employee")
 
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
@@ -132,4 +132,4 @@ else:
     st.info("Awaiting CSV file upload.")
 
 st.markdown("---")
-st.markdown("*Sample CSV columns:* employee name, date, employee id, time, reader in and out")
+st.markdown("*Sample CSV columns:* employee name, date, employee id, time, reader in and out Created By :- Rajkumar Mali Intern")
