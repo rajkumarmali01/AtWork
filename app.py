@@ -13,12 +13,19 @@ def format_timedelta_to_hhmm(t):
 def process_data(df):
     # Combine date and time into a single datetime column
     df['datetime'] = pd.to_datetime(df['date'] + ' ' + df['time'])
-    # Clean up the 'reader in and out' column (strip spaces, lowercase)
-    df['reader in and out'] = df['reader in and out'].str.strip().str.lower()
-    # Mark entries as 'in' or 'out' if they contain those words
-    df['entry_type'] = df['reader in and out'].apply(
-        lambda x: 'in' if 'in' in x else ('out' if 'out' in x else None)
+    # Robust cleaning of 'reader in and out' column (handles NaN and blanks)
+    df['reader in and out'] = df['reader in and out'].apply(
+        lambda x: str(x).strip().lower() if pd.notnull(x) else ""
     )
+    # Mark entries as 'in' or 'out' only if x is a string
+    def get_entry_type(x):
+        if isinstance(x, str):
+            if 'in' in x:
+                return 'in'
+            elif 'out' in x:
+                return 'out'
+        return None
+    df['entry_type'] = df['reader in and out'].apply(get_entry_type)
     # Separate In and Out records
     in_df = df[df['entry_type'] == 'in']
     out_df = df[df['entry_type'] == 'out']
@@ -97,15 +104,17 @@ if uploaded_file:
             )
 
             # ---- Weekly Analysis: Less than 49 hours ----
-            result_df['Week'] = pd.to_datetime(result_df['Date']).dt.isocalendar().week
-            result_df['Year'] = pd.to_datetime(result_df['Date']).dt.isocalendar().year
-            weekly_hours = result_df.groupby(['Employee ID', 'Name', 'Year', 'Week'])['Total Time'].sum().reset_index()
+            result_df['Date'] = pd.to_datetime(result_df['Date'])
+            start_date = result_df['Date'].min()
+            result_df['Week'] = ((result_df['Date'] - start_date).dt.days // 7) + 1
+
+            weekly_hours = result_df.groupby(['Employee ID', 'Name', 'Week'])['Total Time'].sum().reset_index()
             weekly_below_49 = weekly_hours[weekly_hours['Total Time'] < pd.Timedelta(hours=49)]
-            st.subheader("Employees With Weekly Total Less Than 49 Hours")
             weekly_below_49['Total Time'] = weekly_below_49['Total Time'].apply(format_timedelta_to_hhmm)
-            st.dataframe(weekly_below_49[['Employee ID', 'Name', 'Year', 'Week', 'Total Time']])
-            # Download: Weekly Less Than 49 Hours Table
-            csv_lt49 = weekly_below_49.to_csv(index=False)
+
+            st.subheader("Employees With Weekly Total Less Than 49 Hours")
+            st.dataframe(weekly_below_49[['Employee ID', 'Name', 'Week', 'Total Time']])
+            csv_lt49 = weekly_below_49[['Employee ID', 'Name', 'Week', 'Total Time']].to_csv(index=False)
             st.download_button(
                 label="📥 Download Weekly Less Than 49 Hours CSV",
                 data=csv_lt49,
